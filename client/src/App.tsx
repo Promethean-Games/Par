@@ -8,6 +8,7 @@ import { ThemeProvider, useTheme } from "@/components/ThemeProvider";
 import { GameProvider, useGame } from "@/contexts/GameContext";
 import { UnlockProvider } from "@/contexts/UnlockContext";
 import { SplashScreen } from "@/components/SplashScreen";
+import { ModeSelectScreen } from "@/components/ModeSelectScreen";
 import { PlayerSetup } from "@/components/PlayerSetup";
 import { GameScreen } from "@/components/GameScreen";
 import { SummaryScreen } from "@/components/SummaryScreen";
@@ -21,13 +22,16 @@ import { APP_VERSION } from "@/lib/constants";
 import { isRunningInTwa } from "@/lib/play-billing";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
-type Screen = "splash" | "load" | "setup" | "game" | "summary";
+type Screen = "splash" | "load" | "mode" | "setup" | "game" | "summary";
 type ActiveTab = "game" | "summary" | "settings" | "save";
+type CardMode = "digital" | "physical";
 
 function GameApp() {
   const game = useGame();
   const { theme, setTheme } = useTheme();
   
+  const [cardMode, setCardMode] = useState<CardMode>("digital");
+
   const [screen, setScreen] = useState<Screen>(() => {
     const saved = localStorage.getItem("appScreen");
     if (saved && ["splash", "setup", "game", "summary"].includes(saved)) {
@@ -100,8 +104,11 @@ function GameApp() {
   // Load dialog → splash
   useBackHandler(screen === "load" ? () => setScreen("splash") : null);
 
-  // Player setup → splash
-  useBackHandler(screen === "setup" ? () => setScreen("splash") : null);
+  // Mode select → splash
+  useBackHandler(screen === "mode" ? () => setScreen("splash") : null);
+
+  // Player setup → mode
+  useBackHandler(screen === "setup" ? () => setScreen("mode") : null);
 
   // In-game: non-default tab (settings / save / summary) → game tab
   useBackHandler(
@@ -113,7 +120,7 @@ function GameApp() {
   const handleNewGame = () => {
     game.resetGame();
     setViewOnly(false);
-    setScreen("setup");
+    setScreen("mode");
   };
 
   const handleLoadGame = () => {
@@ -208,6 +215,16 @@ function GameApp() {
     );
   }
 
+  if (screen === "mode") {
+    return (
+      <ModeSelectScreen
+        onSelectDigital={() => { setCardMode("digital"); setScreen("setup"); }}
+        onSelectPhysical={() => { setCardMode("physical"); setScreen("setup"); }}
+        onBack={() => setScreen("splash")}
+      />
+    );
+  }
+
   if (screen === "load") {
     return (
       <SaveLoadDialog
@@ -246,6 +263,7 @@ function GameApp() {
           scores={game.scores}
           isLeader={playerIsLeader}
           leftHandedMode={game.settings.leftHandedMode}
+          cardMode={cardMode}
           onPreviousPlayer={game.previousPlayer}
           onNextPlayer={game.nextPlayer}
           onUpdateScore={(score) => game.updateScore(currentPlayer.id, game.currentHole, score)}

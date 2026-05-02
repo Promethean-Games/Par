@@ -13,6 +13,8 @@ import { useGame } from "@/contexts/GameContext";
 import type { CourseCard } from "@/lib/card-deck";
 import { trackEvent } from "@/lib/analytics";
 
+type CardMode = "digital" | "physical";
+
 interface GameScreenProps {
   players: Player[];
   currentPlayer: Player;
@@ -20,6 +22,7 @@ interface GameScreenProps {
   scores: Record<string, HoleScore[]>;
   isLeader: boolean;
   leftHandedMode?: boolean;
+  cardMode?: CardMode;
   onPreviousPlayer: () => void;
   onNextPlayer: () => void;
   onUpdateScore: (score: Partial<HoleScore>) => void;
@@ -37,6 +40,7 @@ export function GameScreen({
   scores,
   isLeader,
   leftHandedMode = false,
+  cardMode = "digital",
   onPreviousPlayer,
   onNextPlayer,
   onUpdateScore,
@@ -168,15 +172,17 @@ export function GameScreen({
   useEffect(() => {
     if (currentHole !== lastHole) {
       setLastHole(currentHole);
-      const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
-      if (!existingPar || existingPar === 0) {
-        setShowDrawDialog(true);
+      if (cardMode === "digital") {
+        const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
+        if (!existingPar || existingPar === 0) {
+          setShowDrawDialog(true);
+        }
       }
     }
-  }, [currentHole, lastHole, scores, currentPlayer.id]);
+  }, [currentHole, lastHole, scores, currentPlayer.id, cardMode]);
 
   useEffect(() => {
-    if (currentScore.par === 0) {
+    if (cardMode === "digital" && currentScore.par === 0) {
       setShowDrawDialog(true);
     }
   }, []);
@@ -320,7 +326,7 @@ export function GameScreen({
       </div>
 
       <div className="flex justify-end mb-3">
-        {currentCard && (
+        {currentCard && cardMode === "digital" && (
           <Button
             variant="outline"
             size="sm"
@@ -334,7 +340,7 @@ export function GameScreen({
         )}
       </div>
 
-      {par === 0 ? (
+      {par === 0 && cardMode === "digital" ? (
         <button
           className="w-full mb-3 p-4 rounded-md border-2 border-dashed border-primary text-center"
           onClick={() => setShowDrawDialog(true)}
@@ -448,10 +454,12 @@ export function GameScreen({
                 disabled={!canAdvance}
                 data-testid="button-next-card"
               >
-                {isFinishingGame ? "Finish Game" : "Next Card"}
+                {isFinishingGame ? "Finish Game" : cardMode === "physical" ? "Next Hole" : "Next Card"}
               </Button>
               {!canAdvance && par === 0 && (
-                <span className="text-xs text-center text-destructive" data-testid="text-par-required">Draw a card to continue</span>
+                <span className="text-xs text-center text-destructive" data-testid="text-par-required">
+                  {cardMode === "physical" ? "Set par to continue" : "Draw a card to continue"}
+                </span>
               )}
             </div>
           </div>
