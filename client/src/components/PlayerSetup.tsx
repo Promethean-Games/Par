@@ -235,7 +235,7 @@ export function PlayerSetup({
             <SelectItem value="end">At End</SelectItem>
             {players.map((player, index) => (
               <SelectItem key={player.id} value={index.toString()}>
-                Before {index + 1}
+                Before {player.name.trim() || `Player ${index + 1}`}
               </SelectItem>
             ))}
           </SelectContent>
