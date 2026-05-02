@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Wrench, Shield, MessageSquare } from "lucide-react";
+import { BookOpen, Wrench, Shield, MessageSquare, Settings, X } from "lucide-react";
 import { LOGO_URL, APP_VERSION } from "@/lib/constants";
 import { TutorialCarousel } from "./TutorialCarousel";
 import { TableLeveler } from "./TableLeveler";
@@ -23,12 +23,8 @@ export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
   const [showCoinFlip, setShowCoinFlip] = useState(false);
   const [showCueMasterTools, setShowCueMasterTools] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  // Back-button / Android back-gesture handling.
-  // Each overlay level gets its own handler so back navigates one level at a
-  // time: sub-tool → CueMasterTools → dismiss.  The innermost registered
-  // handler is called first (top of the global stack).
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Level: sub-tools opened from CueMasterTools
   const subToolOpen = showCoinFlip || showEmulator || showLeveler;
   useBackHandler(subToolOpen ? () => {
     setShowCoinFlip(false);
@@ -37,14 +33,10 @@ export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
     setShowCueMasterTools(true);
   } : null);
 
-  // Level: CueMasterTools hub
   useBackHandler(showCueMasterTools ? () => setShowCueMasterTools(false) : null);
-
-  // Level: Tutorial carousel
   useBackHandler(showTutorial ? () => setShowTutorial(false) : null);
-
-  // Level: Privacy / Terms
   useBackHandler(showPrivacy ? () => setShowPrivacy(false) : null);
+  useBackHandler(showSettings ? () => setShowSettings(false) : null);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 relative">
@@ -58,6 +50,7 @@ export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
       </div>
 
       <div className="w-full max-w-md space-y-4">
+        <p className="text-xs text-red-500 text-center">*Pool table not included.</p>
         <Button
           size="lg"
           className="w-full text-lg h-14"
@@ -65,16 +58,6 @@ export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
           data-testid="button-new-game"
         >
           New Game
-        </Button>
-        <p className="text-xs text-red-500 text-center -mt-2">*Pool table not included.</p>
-        <Button
-          size="lg"
-          variant="outline"
-          className="w-full text-lg h-14"
-          onClick={onLoadGame}
-          data-testid="button-load-game"
-        >
-          Load Game
         </Button>
         <Button
           size="lg"
@@ -90,37 +73,74 @@ export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
           size="lg"
           variant="ghost"
           className="w-full text-lg h-14 text-muted-foreground"
-          onClick={() => { setShowTutorial(true); trackEvent("tutorial_viewed"); }}
-          data-testid="button-how-to-play"
+          onClick={() => setShowSettings(true)}
+          data-testid="button-settings"
         >
-          <BookOpen className="w-5 h-5 mr-2" />
-          How to Play
+          <Settings className="w-5 h-5 mr-2" />
+          Settings
         </Button>
         <Button
           size="lg"
-          variant="ghost"
-          className="w-full text-sm h-10 text-muted-foreground"
-          onClick={() => window.open("https://forms.gle/TgT8YWzdbk7gvJXq6", "_blank")}
-          data-testid="button-feedback"
+          variant="outline"
+          className="w-full text-lg h-14"
+          onClick={onLoadGame}
+          data-testid="button-load-game"
         >
-          <MessageSquare className="w-4 h-4 mr-2" />
-          Send Feedback
-        </Button>
-        <Button
-          size="lg"
-          variant="ghost"
-          className="w-full text-sm h-10 text-muted-foreground"
-          onClick={() => setShowPrivacy(true)}
-          data-testid="button-privacy-policy"
-        >
-          <Shield className="w-4 h-4 mr-2" />
-          Privacy Policy &amp; Terms
+          Load Game
         </Button>
       </div>
 
       <p className="mt-6 text-xs text-muted-foreground" data-testid="text-app-version">
         {APP_VERSION}
       </p>
+
+      {showSettings && (
+        <div className="fixed inset-0 bg-background z-50 flex flex-col" data-testid="settings-overlay">
+          <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+            <h2 className="text-lg font-bold tracking-tight">Settings</h2>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setShowSettings(false)}
+              data-testid="button-close-settings"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-5 space-y-2">
+            <Button
+              size="lg"
+              variant="ghost"
+              className="w-full text-lg h-14 justify-start text-foreground"
+              onClick={() => { setShowSettings(false); setShowTutorial(true); trackEvent("tutorial_viewed"); }}
+              data-testid="button-how-to-play"
+            >
+              <BookOpen className="w-5 h-5 mr-3" />
+              How to Play
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              className="w-full text-lg h-14 justify-start text-foreground"
+              onClick={() => { setShowSettings(false); window.open("https://forms.gle/TgT8YWzdbk7gvJXq6", "_blank"); }}
+              data-testid="button-feedback"
+            >
+              <MessageSquare className="w-5 h-5 mr-3" />
+              Send Feedback
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              className="w-full text-lg h-14 justify-start text-foreground"
+              onClick={() => { setShowSettings(false); setShowPrivacy(true); }}
+              data-testid="button-privacy-policy"
+            >
+              <Shield className="w-5 h-5 mr-3" />
+              Privacy Policy &amp; Terms
+            </Button>
+          </div>
+        </div>
+      )}
 
       {showTutorial && (
         <TutorialCarousel onClose={() => setShowTutorial(false)} />
