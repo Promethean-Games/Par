@@ -8,6 +8,7 @@ import { PAR_OPTIONS, MAX_HOLES } from "@/lib/constants";
 import { getScoreCallout } from "@/lib/game-utils";
 import { cn } from "@/lib/utils";
 import { DrawDialog } from "./DrawDialog";
+import { SetParDialog } from "./SetParDialog";
 
 import { useGame } from "@/contexts/GameContext";
 import type { CourseCard } from "@/lib/card-deck";
@@ -120,6 +121,7 @@ export function GameScreen({
   };
 
   const [showDrawDialog, setShowDrawDialog] = useState(false);
+  const [showSetParDialog, setShowSetParDialog] = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [showCourseViewer, setShowCourseViewer] = useState(false);
   const [lastHole, setLastHole] = useState(currentHole);
@@ -172,18 +174,18 @@ export function GameScreen({
   useEffect(() => {
     if (currentHole !== lastHole) {
       setLastHole(currentHole);
-      if (cardMode === "digital") {
-        const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
-        if (!existingPar || existingPar === 0) {
-          setShowDrawDialog(true);
-        }
+      const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
+      if (!existingPar || existingPar === 0) {
+        if (cardMode === "digital") setShowDrawDialog(true);
+        else setShowSetParDialog(true);
       }
     }
   }, [currentHole, lastHole, scores, currentPlayer.id, cardMode]);
 
   useEffect(() => {
-    if (cardMode === "digital" && currentScore.par === 0) {
-      setShowDrawDialog(true);
+    if (currentScore.par === 0) {
+      if (cardMode === "digital") setShowDrawDialog(true);
+      else setShowSetParDialog(true);
     }
   }, []);
 
@@ -541,6 +543,18 @@ export function GameScreen({
           drawnCard={getDrawnCard(currentHole)}
           onDraw={handleDraw}
           isFirstDraw={currentHole === 1}
+        />
+      )}
+
+      {showSetParDialog && (
+        <SetParDialog
+          hole={currentHole}
+          onConfirm={(selectedPar) => {
+            setShowSetParDialog(false);
+            onSetParForAll(selectedPar);
+            setPar(selectedPar);
+          }}
+          onDismiss={() => setShowSetParDialog(false)}
         />
       )}
 
