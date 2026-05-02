@@ -1,12 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Wrench, Shield, MessageSquare, Settings, X } from "lucide-react";
+import { BookOpen, Shield, MessageSquare, Settings, X } from "lucide-react";
 import { LOGO_URL, APP_VERSION } from "@/lib/constants";
 import { TutorialCarousel } from "./TutorialCarousel";
-import { TableLeveler } from "./TableLeveler";
-import { CueingEmulator } from "./CueingEmulator";
-import { CoinFlip } from "./CoinFlip";
-import { CueMasterTools } from "./CueMasterTools";
 import { PrivacyPolicy } from "./PrivacyPolicy";
 import { trackEvent } from "@/lib/analytics";
 import { useBackHandler } from "@/hooks/useBackHandler";
@@ -18,22 +14,9 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
   const [showTutorial, setShowTutorial] = useState(false);
-  const [showLeveler, setShowLeveler] = useState(false);
-  const [showEmulator, setShowEmulator] = useState(false);
-  const [showCoinFlip, setShowCoinFlip] = useState(false);
-  const [showCueMasterTools, setShowCueMasterTools] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const subToolOpen = showCoinFlip || showEmulator || showLeveler;
-  useBackHandler(subToolOpen ? () => {
-    setShowCoinFlip(false);
-    setShowEmulator(false);
-    setShowLeveler(false);
-    setShowCueMasterTools(true);
-  } : null);
-
-  useBackHandler(showCueMasterTools ? () => setShowCueMasterTools(false) : null);
   useBackHandler(showTutorial ? () => setShowTutorial(false) : null);
   useBackHandler(showPrivacy ? () => setShowPrivacy(false) : null);
   useBackHandler(showSettings ? () => setShowSettings(false) : null);
@@ -58,16 +41,6 @@ export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
           data-testid="button-new-game"
         >
           New Game
-        </Button>
-        <Button
-          size="lg"
-          className="w-full text-lg h-14 text-white font-bold border-0"
-          style={{ background: "#15803d" }}
-          onClick={() => { setShowCueMasterTools(true); trackEvent("tool_opened", { tool_name: "cuemaster_tools" }); }}
-          data-testid="button-cuemaster-tools"
-        >
-          <Wrench className="w-5 h-5 mr-2" />
-          CueMaster Tools
         </Button>
         <Button
           size="lg"
@@ -144,23 +117,6 @@ export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
 
       {showTutorial && (
         <TutorialCarousel onClose={() => setShowTutorial(false)} />
-      )}
-      {showLeveler && (
-        <TableLeveler onClose={() => { setShowLeveler(false); setShowCueMasterTools(true); }} />
-      )}
-      {showEmulator && (
-        <CueingEmulator onClose={() => { setShowEmulator(false); setShowCueMasterTools(true); }} />
-      )}
-      {showCoinFlip && (
-        <CoinFlip onClose={() => { setShowCoinFlip(false); setShowCueMasterTools(true); }} />
-      )}
-      {showCueMasterTools && (
-        <CueMasterTools
-          onClose={() => setShowCueMasterTools(false)}
-          onOpenCoinFlip={() => { setShowCueMasterTools(false); setShowCoinFlip(true); trackEvent("tool_opened", { tool_name: "coin_flip" }); }}
-          onOpenEmulator={() => { setShowCueMasterTools(false); setShowEmulator(true); trackEvent("tool_opened", { tool_name: "cueing_emulator" }); }}
-          onOpenLeveler={() => { setShowCueMasterTools(false); setShowLeveler(true); trackEvent("tool_opened", { tool_name: "table_leveler" }); }}
-        />
       )}
       {showPrivacy && (
         <PrivacyPolicy onClose={() => setShowPrivacy(false)} />
