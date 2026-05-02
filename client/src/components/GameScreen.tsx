@@ -196,7 +196,8 @@ export function GameScreen({
     setStrokes(currentScore.strokes || 0);
     setScratches(currentScore.scratches || 0);
     setPenalties(currentScore.penalties || 0);
-  }, [currentPlayer.id, currentHole, currentScore]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer.id, currentHole]);
 
   useEffect(() => {
     if (isInitialMount.current) {
