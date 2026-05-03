@@ -1,14 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import type { Edition } from "@/lib/card-deck";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { useUnlock } from "@/contexts/UnlockContext";
 
 interface EditionDef {
-  id: Edition | "sequential" | "teed-off" | "quantum" | "orbital";
+  id: Edition | "teed-off" | "quantum" | "orbital";
   name: string;
   tagline: string;
   available: boolean;
+  requiresPurchase?: boolean;
 }
 
 const EDITIONS: EditionDef[] = [
@@ -23,12 +25,14 @@ const EDITIONS: EditionDef[] = [
     name: "Reracked",
     tagline: "A fresh layout with a new set of courses and higher pars.",
     available: true,
+    requiresPurchase: true,
   },
   {
     id: "sequential",
     name: "Sequential",
     tagline: "Balls are played in sequential order — like 9-ball. Cards are still drawn randomly.",
     available: true,
+    requiresPurchase: true,
   },
   {
     id: "teed-off",
@@ -57,6 +61,7 @@ interface EditionSelectScreenProps {
 
 export function EditionSelectScreen({ onSelectEdition, onBack }: EditionSelectScreenProps) {
   useBackHandler(onBack);
+  const { isUnlocked, isPurchasing, triggerPurchase } = useUnlock();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
@@ -75,40 +80,64 @@ export function EditionSelectScreen({ onSelectEdition, onBack }: EditionSelectSc
         <p className="text-muted-foreground mb-8 text-sm">Select which course set you want to play.</p>
 
         <div className="space-y-3">
-          {EDITIONS.map((edition) => (
-            <button
-              key={edition.id}
-              className={[
-                "w-full text-left rounded-md",
-                edition.available
-                  ? "hover-elevate active-elevate-2"
-                  : "opacity-50 cursor-not-allowed",
-              ].join(" ")}
-              onClick={() => {
-                if (edition.available) onSelectEdition(edition.id as Edition);
-              }}
-              disabled={!edition.available}
-              data-testid={`button-edition-${edition.id}`}
-            >
-              <div className="rounded-md px-5 py-4 flex items-center gap-4 border">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-base leading-tight">{edition.name}</p>
-                    {!edition.available && (
-                      <Badge variant="secondary" className="text-xs gap-1">
-                        <Lock className="w-2.5 h-2.5" />
-                        Coming Soon
-                      </Badge>
-                    )}
+          {EDITIONS.map((edition) => {
+            const isComingSoon = !edition.available;
+            const isLocked = !!edition.requiresPurchase && !isUnlocked;
+            const isClickable = !isComingSoon;
+
+            return (
+              <button
+                key={edition.id}
+                className={[
+                  "w-full text-left rounded-md",
+                  isComingSoon
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover-elevate active-elevate-2",
+                ].join(" ")}
+                onClick={() => {
+                  if (isComingSoon) return;
+                  if (isLocked) { triggerPurchase(); return; }
+                  onSelectEdition(edition.id as Edition);
+                }}
+                disabled={isComingSoon || (isLocked && isPurchasing)}
+                data-testid={`button-edition-${edition.id}`}
+              >
+                <div className="rounded-md px-5 py-4 flex items-center gap-4 border">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-base leading-tight">{edition.name}</p>
+                      {isComingSoon && (
+                        <Badge variant="secondary" className="text-xs gap-1">
+                          <Lock className="w-2.5 h-2.5" />
+                          Coming Soon
+                        </Badge>
+                      )}
+                      {isLocked && !isComingSoon && (
+                        <Badge variant="secondary" className="text-xs gap-1">
+                          {isPurchasing ? (
+                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                          ) : (
+                            <Lock className="w-2.5 h-2.5" />
+                          )}
+                          Unlock
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
+                      {edition.tagline}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
-                    {edition.tagline}
-                  </p>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
+
+        {!isUnlocked && (
+          <p className="text-xs text-muted-foreground text-center mt-6">
+            Tap an edition marked <Lock className="inline w-3 h-3 mb-0.5" /> Unlock to purchase full access.
+          </p>
+        )}
       </div>
     </div>
   );
