@@ -9,6 +9,7 @@ import { GameProvider, useGame } from "@/contexts/GameContext";
 import { UnlockProvider } from "@/contexts/UnlockContext";
 import { SplashScreen } from "@/components/SplashScreen";
 import { ModeSelectScreen } from "@/components/ModeSelectScreen";
+import { EditionSelectScreen } from "@/components/EditionSelectScreen";
 import { PlayerSetup } from "@/components/PlayerSetup";
 import { GameScreen } from "@/components/GameScreen";
 import { SummaryScreen } from "@/components/SummaryScreen";
@@ -21,8 +22,9 @@ import { initAnalytics, trackEvent } from "@/lib/analytics";
 import { APP_VERSION } from "@/lib/constants";
 import { isRunningInTwa } from "@/lib/play-billing";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import type { Edition } from "@/lib/card-deck";
 
-type Screen = "splash" | "load" | "mode" | "setup" | "game" | "summary";
+type Screen = "splash" | "load" | "mode" | "edition" | "setup" | "game" | "summary";
 type ActiveTab = "game" | "summary" | "settings" | "save";
 type CardMode = "digital" | "physical";
 
@@ -31,6 +33,7 @@ function GameApp() {
   const { theme, setTheme } = useTheme();
   
   const [cardMode, setCardMode] = useState<CardMode>("digital");
+  const [edition, setEdition] = useState<Edition>("classic");
 
   const [screen, setScreen] = useState<Screen>(() => {
     const saved = localStorage.getItem("appScreen");
@@ -98,19 +101,11 @@ function GameApp() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [screen, activeTab, game.isComplete]);
 
-  // Back-button / Android back-gesture handling for screen-level navigation.
-  // Each registered handler intercepts one back-press and navigates one step up.
-
-  // Load dialog → splash
+  // Back-button / Android back-gesture handling
   useBackHandler(screen === "load" ? () => setScreen("splash") : null);
-
-  // Mode select → splash
   useBackHandler(screen === "mode" ? () => setScreen("splash") : null);
-
-  // Player setup → mode
-  useBackHandler(screen === "setup" ? () => setScreen("mode") : null);
-
-  // In-game: non-default tab (settings / save / summary) → game tab
+  useBackHandler(screen === "edition" ? () => setScreen("mode") : null);
+  useBackHandler(screen === "setup" ? () => setScreen("edition") : null);
   useBackHandler(
     screen === "game" && activeTab !== "game" && !viewOnly
       ? () => setActiveTab("game")
@@ -128,12 +123,13 @@ function GameApp() {
   };
 
   const handleStartGame = () => {
-    game.startGame();
+    game.startGame(edition);
     setActiveTab("game");
     setScreen("game");
     trackEvent("game_started", {
       player_count: game.players.length,
       mode: "full",
+      edition,
     });
   };
 
@@ -218,9 +214,18 @@ function GameApp() {
   if (screen === "mode") {
     return (
       <ModeSelectScreen
-        onSelectDigital={() => { setCardMode("digital"); setScreen("setup"); }}
-        onSelectPhysical={() => { setCardMode("physical"); setScreen("setup"); }}
+        onSelectDigital={() => { setCardMode("digital"); setScreen("edition"); }}
+        onSelectPhysical={() => { setCardMode("physical"); setScreen("edition"); }}
         onBack={() => setScreen("splash")}
+      />
+    );
+  }
+
+  if (screen === "edition") {
+    return (
+      <EditionSelectScreen
+        onSelectEdition={(ed) => { setEdition(ed); setScreen("setup"); }}
+        onBack={() => setScreen("mode")}
       />
     );
   }
@@ -248,7 +253,7 @@ function GameApp() {
         onUpdatePlayerColor={game.updatePlayerColor}
         onMovePlayer={game.movePlayer}
         onStartGame={handleStartGame}
-        onBack={() => setScreen("splash")}
+        onBack={() => setScreen("edition")}
       />
     );
   }

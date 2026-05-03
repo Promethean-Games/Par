@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { Player, HoleScore, GameSession, Settings, SetupTime } from "@shared/schema";
 import { PLAYER_COLORS, MAX_HOLES } from "@/lib/constants";
-import { shuffleDeck, getCardById, type CourseCard } from "@/lib/card-deck";
+import { shuffleDeckForEdition, getCardById, type CourseCard, type Edition } from "@/lib/card-deck";
 import {
   ACHIEVEMENT_IDS,
   unlockAchievement,
@@ -23,6 +23,7 @@ interface GameState {
   scores: Record<string, HoleScore[]>;
   isComplete: boolean;
   settings: Settings;
+  edition: Edition;
   deckIds: string[];
   drawnCardIds: Record<number, string>;
   turnTimes: TurnTime[];
@@ -40,7 +41,7 @@ interface GameContextValue extends GameState {
   updatePlayerName: (id: string, name: string) => void;
   updatePlayerColor: (id: string, color: string) => void;
   movePlayer: (id: string, direction: "up" | "down") => void;
-  startGame: () => void;
+  startGame: (edition: Edition) => void;
   updateScore: (playerId: string, hole: number, score: Partial<HoleScore>) => void;
   nextCard: () => void;
   previousPlayer: () => void;
@@ -83,6 +84,7 @@ function createDefaultState(): GameState {
       leftHandedMode: false,
       autoSave: true,
     },
+    edition: "classic",
     deckIds: [],
     drawnCardIds: {},
     turnTimes: [],
@@ -104,6 +106,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         return {
           ...createDefaultState(),
           ...parsed,
+          edition: parsed.edition || "classic",
           deckIds: parsed.deckIds || [],
           drawnCardIds: parsed.drawnCardIds || {},
           turnTimes: parsed.turnTimes || [],
@@ -225,11 +228,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const startGame = () => {
-    const newDeck = shuffleDeck();
+  const startGame = (edition: Edition = "classic") => {
+    const newDeck = shuffleDeckForEdition(edition);
     const now = Date.now();
     setGameState((prev) => ({
       ...prev,
+      edition,
       currentHole: 1,
       currentPlayerIndex: 0,
       isComplete: false,
@@ -253,7 +257,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     let deck = [...(gameState.deckIds || [])];
     if (deck.length === 0) {
-      deck = shuffleDeck().map((c) => c.id);
+      deck = shuffleDeckForEdition(gameState.edition).map((c) => c.id);
     }
 
     const drawnId = deck[0];
