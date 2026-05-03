@@ -27,8 +27,8 @@ const EDITIONS: EditionDef[] = [
   {
     id: "sequential",
     name: "Sequential",
-    tagline: "Holes play in a fixed order — no shuffling.",
-    available: false,
+    tagline: "Balls are played in sequential order — like 9-ball. Cards are still drawn randomly.",
+    available: true,
   },
   {
     id: "teed-off",

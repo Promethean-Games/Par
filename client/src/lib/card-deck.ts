@@ -18,6 +18,26 @@ import card601 from "@assets/6-01_1772647223860.png";
 import cardJoker from "@assets/Joker_1773592747896.png";
 import cardBack from "@assets/Back_1772647592199.png";
 
+// ── Sequential edition ─────────────────────────────────────────────────────
+import seq301 from "@assets/SEQ-C-03_01_1777827371638.png";
+import seq302 from "@assets/SEQ-C-03_02_1777827371645.png";
+import seq303 from "@assets/SEQ-C-03_03_1777827371646.png";
+import seq304 from "@assets/SEQ-C-03_04_1777827371647.png";
+import seq401 from "@assets/SEQ-C-04_01_1777827371648.png";
+import seq402 from "@assets/SEQ-C-04_02_1777827371649.png";
+import seq403 from "@assets/SEQ-C-04_03_1777827371649.png";
+import seq404 from "@assets/SEQ-C-04_04_1777827371650.png";
+import seq405 from "@assets/SEQ-C-04_05_1777827371652.png";
+import seq501 from "@assets/SEQ-C-05_01_1777827371655.png";
+import seq502 from "@assets/SEQ-C-05_02_1777827371656.png";
+import seq503 from "@assets/SEQ-C-05_03_1777827371657.png";
+import seq601 from "@assets/SEQ-C-06_01_1777827371658.png";
+import seq602 from "@assets/SEQ-C-06_02_1777827371659.png";
+import seq701 from "@assets/SEQ-C-07_01_1777827371660.png";
+import seq702 from "@assets/SEQ-C-07_02_1777827371661.png";
+import seq801 from "@assets/SEQ-C-08_01_1777827371661.png";
+import seq901 from "@assets/SEQ-C-09_01_1777827371662.png";
+
 // ── Reracked edition ───────────────────────────────────────────────────────
 import rr201 from "@assets/2-01_1777824958128.png";
 import rr301 from "@assets/3-01_1777824958133.png";
@@ -37,7 +57,7 @@ import rr701 from "@assets/7-01_1777824958147.png";
 import rr702 from "@assets/7-02_1777824958148.png";
 import rrJoker from "@assets/JK_Mock_1777825445545.png";
 
-export type Edition = "classic" | "reracked";
+export type Edition = "classic" | "reracked" | "sequential";
 
 export interface CourseCard {
   id: string;
@@ -67,6 +87,27 @@ export const ALL_CARDS: CourseCard[] = [
   { id: "6-01", par: 6, img: card601, isJoker: false },
   { id: "joker-1", par: null, img: cardJoker, isJoker: true },
   { id: "joker-2", par: null, img: cardJoker, isJoker: true },
+];
+
+export const SEQUENTIAL_CARDS: CourseCard[] = [
+  { id: "seq-3-01", par: 3, img: seq301, isJoker: false },
+  { id: "seq-3-02", par: 3, img: seq302, isJoker: false },
+  { id: "seq-3-03", par: 3, img: seq303, isJoker: false },
+  { id: "seq-3-04", par: 3, img: seq304, isJoker: false },
+  { id: "seq-4-01", par: 4, img: seq401, isJoker: false },
+  { id: "seq-4-02", par: 4, img: seq402, isJoker: false },
+  { id: "seq-4-03", par: 4, img: seq403, isJoker: false },
+  { id: "seq-4-04", par: 4, img: seq404, isJoker: false },
+  { id: "seq-4-05", par: 4, img: seq405, isJoker: false },
+  { id: "seq-5-01", par: 5, img: seq501, isJoker: false },
+  { id: "seq-5-02", par: 5, img: seq502, isJoker: false },
+  { id: "seq-5-03", par: 5, img: seq503, isJoker: false },
+  { id: "seq-6-01", par: 6, img: seq601, isJoker: false },
+  { id: "seq-6-02", par: 6, img: seq602, isJoker: false },
+  { id: "seq-7-01", par: 7, img: seq701, isJoker: false },
+  { id: "seq-7-02", par: 7, img: seq702, isJoker: false },
+  { id: "seq-8-01", par: 8, img: seq801, isJoker: false },
+  { id: "seq-9-01", par: 9, img: seq901, isJoker: false },
 ];
 
 export const RERACKED_CARDS: CourseCard[] = [
@@ -104,9 +145,15 @@ export function shuffleDeck(): CourseCard[] {
 }
 
 export function shuffleDeckForEdition(edition: Edition): CourseCard[] {
-  return edition === "reracked" ? shuffle(RERACKED_CARDS) : shuffle(ALL_CARDS);
+  if (edition === "reracked") return shuffle(RERACKED_CARDS);
+  if (edition === "sequential") return shuffle(SEQUENTIAL_CARDS);
+  return shuffle(ALL_CARDS);
 }
 
 export function getCardById(id: string): CourseCard | undefined {
-  return ALL_CARDS.find((c) => c.id === id) ?? RERACKED_CARDS.find((c) => c.id === id);
+  return (
+    ALL_CARDS.find((c) => c.id === id) ??
+    RERACKED_CARDS.find((c) => c.id === id) ??
+    SEQUENTIAL_CARDS.find((c) => c.id === id)
+  );
 }
