@@ -35,6 +35,7 @@ import rr602 from "@assets/6-02_1777824958146.png";
 import rr603 from "@assets/6-03_1777824958147.png";
 import rr701 from "@assets/7-01_1777824958147.png";
 import rr702 from "@assets/7-02_1777824958148.png";
+import rrJoker from "@assets/JK_Mock_1777825445545.png";
 
 export type Edition = "classic" | "reracked";
 
@@ -85,6 +86,8 @@ export const RERACKED_CARDS: CourseCard[] = [
   { id: "rr-6-03", par: 6, img: rr603, isJoker: false },
   { id: "rr-7-01", par: 7, img: rr701, isJoker: false },
   { id: "rr-7-02", par: 7, img: rr702, isJoker: false },
+  { id: "rr-joker-1", par: null, img: rrJoker, isJoker: true },
+  { id: "rr-joker-2", par: null, img: rrJoker, isJoker: true },
 ];
 
 function shuffle(deck: CourseCard[]): CourseCard[] {
