@@ -224,6 +224,7 @@ function GameApp() {
   if (screen === "edition") {
     return (
       <EditionSelectScreen
+        cardMode={cardMode}
         onSelectEdition={(ed) => { setEdition(ed); setScreen("setup"); }}
         onBack={() => setScreen("mode")}
       />

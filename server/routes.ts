@@ -179,17 +179,32 @@ a{color:#93c5fd;text-decoration:underline}
 </html>`);
   });
 
+  const EDITION_PRICE_IDS: Record<string, string | undefined> = {
+    reracked: process.env.STRIPE_PRICE_ID_RERACKED,
+    sequential: process.env.STRIPE_PRICE_ID_SEQUENTIAL,
+  };
+
   app.post("/api/create-checkout-session", checkoutLimiter, async (req, res) => {
-    if (!stripe || !stripePriceId) {
+    if (!stripe) {
       return res.status(500).json({ error: "Stripe is not configured" });
+    }
+
+    const { edition } = req.body ?? {};
+    if (!edition || typeof edition !== "string" || !EDITION_PRICE_IDS.hasOwnProperty(edition)) {
+      return res.status(400).json({ error: "Invalid or missing edition" });
+    }
+
+    const priceId = EDITION_PRICE_IDS[edition];
+    if (!priceId) {
+      return res.status(500).json({ error: `Stripe price not configured for edition: ${edition}` });
     }
 
     try {
       const origin = `${req.protocol}://${req.get("host")}`;
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
-        line_items: [{ price: stripePriceId, quantity: 1 }],
-        success_url: `${origin}/?unlock=success&session_id={CHECKOUT_SESSION_ID}`,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${origin}/?unlock=success&edition=${encodeURIComponent(edition)}&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/?unlock=cancelled`,
       });
 
@@ -245,10 +260,14 @@ a{color:#93c5fd;text-decoration:underline}
         return res.status(400).json({ error: "Invalid productId format" });
       }
 
-      const ALLOWED_PRODUCT_IDS = ["full_unlock"];
-      if (!ALLOWED_PRODUCT_IDS.includes(productId)) {
+      const PLAY_PRODUCT_EDITION_MAP: Record<string, string> = {
+        reracked_unlock: "reracked",
+        sequential_unlock: "sequential",
+      };
+      if (!PLAY_PRODUCT_EDITION_MAP.hasOwnProperty(productId)) {
         return res.status(403).json({ error: "Product not eligible for unlock" });
       }
+      const edition = PLAY_PRODUCT_EDITION_MAP[productId];
 
       const client = await googleAuth.getClient();
       const accessToken = await client.getAccessToken();
@@ -299,7 +318,7 @@ a{color:#93c5fd;text-decoration:underline}
         }
       }
 
-      res.json({ unlocked: true });
+      res.json({ unlocked: true, edition });
     } catch (error) {
       console.error("Error verifying Play purchase:", error);
       res.status(500).json({ error: "Failed to verify purchase" });

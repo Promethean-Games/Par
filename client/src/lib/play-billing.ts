@@ -25,7 +25,12 @@ interface PurchaseDetails {
 }
 
 const PLAY_BILLING_METHOD = "https://play.google.com/billing";
-const PRODUCT_ID = "full_unlock";
+
+// Maps edition name → Play Store product ID
+export const EDITION_PRODUCT_IDS: Record<string, string> = {
+  reracked: "reracked_unlock",
+  sequential: "sequential_unlock",
+};
 
 // Android TWA sets document.referrer to "android-app://<package>/" on the initial
 // page load. We cache this in sessionStorage so it survives in-app navigation.
@@ -63,35 +68,35 @@ export function getTwaDebugInfo(): string {
 }
 
 export function isRunningInTwa(): boolean {
-  // getDigitalGoodsService exists as a stub in Chrome 93+ even in regular browser
-  // tabs — it throws "unsupported context" unless we're in a real TWA billing context.
-  // The referrer check is the only reliable way to distinguish TWA from browser.
   return (
     typeof window.getDigitalGoodsService === "function" && detectTwaContext()
   );
 }
 
-export async function initiatePlayBillingCheckout(): Promise<{
+export async function initiatePlayBillingCheckout(edition: string): Promise<{
   purchaseToken: string;
   productId: string;
 } | null> {
   if (!isRunningInTwa()) return null;
 
+  const productId = EDITION_PRODUCT_IDS[edition];
+  if (!productId) throw new Error(`No Play product ID mapped for edition: ${edition}`);
+
   const service = await window.getDigitalGoodsService!(PLAY_BILLING_METHOD);
-  const details = await service.getDetails([PRODUCT_ID]);
+  const details = await service.getDetails([productId]);
 
   if (!details || details.length === 0) {
-    throw new Error("Product not found in Play Store");
+    throw new Error(`Product "${productId}" not found in Play Store`);
   }
 
   const methodData: PaymentMethodData = {
     supportedMethods: PLAY_BILLING_METHOD,
-    data: { sku: PRODUCT_ID },
+    data: { sku: productId },
   };
 
   const paymentDetails: PaymentDetailsInit = {
     total: {
-      label: details[0].title || "Unlock All 18 Cards",
+      label: details[0].title || `Unlock ${edition}`,
       amount: { currency: "USD", value: "0" },
     },
   };
@@ -111,29 +116,26 @@ export async function initiatePlayBillingCheckout(): Promise<{
     throw new Error("No purchase token received from Play Billing");
   }
 
-  return { purchaseToken, productId: PRODUCT_ID };
+  return { purchaseToken, productId };
 }
 
-export async function checkPendingPurchases(): Promise<{
+// Returns all pending/owned Play purchases as an array so every edition can be checked.
+export async function checkPendingPurchases(): Promise<Array<{
   purchaseToken: string;
   productId: string;
-} | null> {
-  if (!isRunningInTwa()) return null;
+}>> {
+  if (!isRunningInTwa()) return [];
 
   try {
     const service = await window.getDigitalGoodsService!(PLAY_BILLING_METHOD);
     const purchases = await service.listPurchases();
-
-    const fullUnlock = purchases.find((p) => p.itemId === PRODUCT_ID);
-    if (fullUnlock) {
-      return {
-        purchaseToken: fullUnlock.purchaseToken,
-        productId: PRODUCT_ID,
-      };
-    }
+    const knownIds = new Set(Object.values(EDITION_PRODUCT_IDS));
+    return purchases
+      .filter((p) => knownIds.has(p.itemId))
+      .map((p) => ({ purchaseToken: p.purchaseToken, productId: p.itemId }));
   } catch {
     // Silently ignore — pending purchase check is best-effort
   }
 
-  return null;
+  return [];
 }

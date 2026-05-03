@@ -5,6 +5,8 @@ import type { Edition } from "@/lib/card-deck";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { useUnlock } from "@/contexts/UnlockContext";
 
+type CardMode = "digital" | "physical";
+
 interface EditionDef {
   id: Edition | "teed-off" | "quantum" | "orbital";
   name: string;
@@ -55,13 +57,21 @@ const EDITIONS: EditionDef[] = [
 ];
 
 interface EditionSelectScreenProps {
+  cardMode: CardMode;
   onSelectEdition: (edition: Edition) => void;
   onBack: () => void;
 }
 
-export function EditionSelectScreen({ onSelectEdition, onBack }: EditionSelectScreenProps) {
+export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: EditionSelectScreenProps) {
   useBackHandler(onBack);
-  const { isUnlocked, isPurchasing, triggerPurchase } = useUnlock();
+  const { isEditionUnlocked, purchasingEdition, triggerPurchase } = useUnlock();
+
+  // Physical card mode is always free — no paywall applies
+  const isPhysical = cardMode === "physical";
+
+  const anyLocked = !isPhysical && EDITIONS.some(
+    (e) => e.available && e.requiresPurchase && !isEditionUnlocked(e.id)
+  );
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
@@ -82,8 +92,8 @@ export function EditionSelectScreen({ onSelectEdition, onBack }: EditionSelectSc
         <div className="space-y-3">
           {EDITIONS.map((edition) => {
             const isComingSoon = !edition.available;
-            const isLocked = !!edition.requiresPurchase && !isUnlocked;
-            const isClickable = !isComingSoon;
+            const isLocked = !isPhysical && !!edition.requiresPurchase && !isEditionUnlocked(edition.id);
+            const isPurchasing = purchasingEdition === edition.id;
 
             return (
               <button
@@ -96,10 +106,10 @@ export function EditionSelectScreen({ onSelectEdition, onBack }: EditionSelectSc
                 ].join(" ")}
                 onClick={() => {
                   if (isComingSoon) return;
-                  if (isLocked) { triggerPurchase(); return; }
+                  if (isLocked) { triggerPurchase(edition.id); return; }
                   onSelectEdition(edition.id as Edition);
                 }}
-                disabled={isComingSoon || (isLocked && isPurchasing)}
+                disabled={isComingSoon || isPurchasing}
                 data-testid={`button-edition-${edition.id}`}
               >
                 <div className="rounded-md px-5 py-4 flex items-center gap-4 border">
@@ -119,7 +129,7 @@ export function EditionSelectScreen({ onSelectEdition, onBack }: EditionSelectSc
                           ) : (
                             <Lock className="w-2.5 h-2.5" />
                           )}
-                          Unlock
+                          {isPurchasing ? "Processing…" : "Unlock $4.99"}
                         </Badge>
                       )}
                     </div>
@@ -133,9 +143,9 @@ export function EditionSelectScreen({ onSelectEdition, onBack }: EditionSelectSc
           })}
         </div>
 
-        {!isUnlocked && (
+        {anyLocked && (
           <p className="text-xs text-muted-foreground text-center mt-6">
-            Tap an edition marked <Lock className="inline w-3 h-3 mb-0.5" /> Unlock to purchase full access.
+            Each locked edition is $4.99 — purchased separately and unlocked forever.
           </p>
         )}
       </div>
