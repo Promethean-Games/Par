@@ -227,6 +227,8 @@ export function PlayerSetup({
           onKeyPress={handleKeyPress}
           placeholder="Player name"
           className="flex-1"
+          autoComplete="off"
+          name="player-display-name"
           data-testid="input-new-player"
         />
         <Select value={insertPosition} onValueChange={setInsertPosition}>

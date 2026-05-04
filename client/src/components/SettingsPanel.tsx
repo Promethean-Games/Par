@@ -103,6 +103,8 @@ export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer
                 onChange={(e) => setNewPlayerName(e.target.value)}
                 placeholder="Player name"
                 className="flex-1"
+                autoComplete="off"
+                name="player-display-name"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAddPlayer();
                 }}
