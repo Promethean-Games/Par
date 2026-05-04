@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2, Mail, X } from "lucide-react";
 import type { Edition } from "@/lib/card-deck";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { useUnlock } from "@/contexts/UnlockContext";
@@ -8,11 +9,12 @@ import { useUnlock } from "@/contexts/UnlockContext";
 type CardMode = "digital" | "physical";
 
 interface EditionDef {
-  id: Edition | "teed-off" | "quantum" | "orbital";
+  id: Edition | "teed-off" | "quantum" | "orbital" | "tournament";
   name: string;
   tagline: string;
   available: boolean;
   requiresPurchase?: boolean;
+  contactForDigital?: boolean;
 }
 
 const EDITIONS: EditionDef[] = [
@@ -35,6 +37,13 @@ const EDITIONS: EditionDef[] = [
     tagline: "Balls are played in sequential order — like 9-ball. Cards are still drawn randomly.",
     available: true,
     requiresPurchase: true,
+  },
+  {
+    id: "tournament",
+    name: "Tournament",
+    tagline: "Organized bracket play for leagues and local events.",
+    available: false,
+    contactForDigital: true,
   },
   {
     id: "teed-off",
@@ -65,8 +74,8 @@ interface EditionSelectScreenProps {
 export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: EditionSelectScreenProps) {
   useBackHandler(onBack);
   const { isEditionUnlocked, purchasingEdition, triggerPurchase } = useUnlock();
+  const [showTournamentInfo, setShowTournamentInfo] = useState(false);
 
-  // Physical card mode is always free — no paywall applies
   const isPhysical = cardMode === "physical";
 
   const anyLocked = !isPhysical && EDITIONS.some(
@@ -94,51 +103,94 @@ export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: Editi
             const isComingSoon = !edition.available;
             const isLocked = !isPhysical && !!edition.requiresPurchase && !isEditionUnlocked(edition.id);
             const isPurchasing = purchasingEdition === edition.id;
+            const isDigitalTournament = !isPhysical && !!edition.contactForDigital;
+            const isInteractive = !isComingSoon || isDigitalTournament;
 
             return (
-              <button
-                key={edition.id}
-                className={[
-                  "w-full text-left rounded-md",
-                  isComingSoon
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover-elevate active-elevate-2",
-                ].join(" ")}
-                onClick={() => {
-                  if (isComingSoon) return;
-                  if (isLocked) { triggerPurchase(edition.id); return; }
-                  onSelectEdition(edition.id as Edition);
-                }}
-                disabled={isComingSoon || isPurchasing}
-                data-testid={`button-edition-${edition.id}`}
-              >
-                <div className="rounded-md px-5 py-4 flex items-center gap-4 border">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-base leading-tight">{edition.name}</p>
-                      {isComingSoon && (
-                        <Badge variant="secondary" className="text-xs gap-1">
-                          <Lock className="w-2.5 h-2.5" />
-                          Coming Soon
-                        </Badge>
-                      )}
-                      {isLocked && !isComingSoon && (
-                        <Badge variant="secondary" className="text-xs gap-1">
-                          {isPurchasing ? (
-                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                          ) : (
+              <div key={edition.id}>
+                <button
+                  className={[
+                    "w-full text-left rounded-md",
+                    isInteractive
+                      ? "hover-elevate active-elevate-2"
+                      : "opacity-50 cursor-not-allowed",
+                  ].join(" ")}
+                  onClick={() => {
+                    if (isDigitalTournament) {
+                      setShowTournamentInfo((v) => !v);
+                      return;
+                    }
+                    if (!isInteractive) return;
+                    if (isLocked) { triggerPurchase(edition.id); return; }
+                    onSelectEdition(edition.id as Edition);
+                  }}
+                  disabled={!isInteractive && !isDigitalTournament || isPurchasing}
+                  data-testid={`button-edition-${edition.id}`}
+                >
+                  <div className="rounded-md px-5 py-4 flex items-center gap-4 border">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-bold text-base leading-tight">{edition.name}</p>
+                        {isComingSoon && !isDigitalTournament && (
+                          <Badge variant="secondary" className="text-xs gap-1">
                             <Lock className="w-2.5 h-2.5" />
-                          )}
-                          {isPurchasing ? "Processing…" : "Unlock $4.99"}
-                        </Badge>
-                      )}
+                            Coming Soon
+                          </Badge>
+                        )}
+                        {isComingSoon && isDigitalTournament && (
+                          <Badge variant="secondary" className="text-xs gap-1">
+                            <Mail className="w-2.5 h-2.5" />
+                            Get Info
+                          </Badge>
+                        )}
+                        {isLocked && !isComingSoon && (
+                          <Badge variant="secondary" className="text-xs gap-1">
+                            {isPurchasing ? (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            ) : (
+                              <Lock className="w-2.5 h-2.5" />
+                            )}
+                            {isPurchasing ? "Processing…" : "Unlock $4.99"}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
+                        {edition.tagline}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
-                      {edition.tagline}
-                    </p>
                   </div>
-                </div>
-              </button>
+                </button>
+
+                {isDigitalTournament && showTournamentInfo && (
+                  <div className="mt-1 rounded-md border px-5 py-4 bg-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm mb-1">Running a local tournament?</p>
+                        <p className="text-sm text-muted-foreground leading-snug">
+                          We'd love to help you set up a Par for the Course tournament at your venue. Reach out and we'll walk you through everything.
+                        </p>
+                        <a
+                          href="mailto:info@promethean-games.com"
+                          className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium underline underline-offset-2"
+                          data-testid="link-tournament-email"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          info@promethean-games.com
+                        </a>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setShowTournamentInfo(false)}
+                        className="-mt-1 -mr-2 shrink-0"
+                        data-testid="button-tournament-info-close"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
