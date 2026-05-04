@@ -5,9 +5,10 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, UserMinus, Home } from "lucide-react";
+import { UserPlus, UserMinus, Home, Share2, Copy, Check } from "lucide-react";
 import type { Settings, Player } from "@shared/schema";
 import { getAnalyticsOptOut, setAnalyticsOptOut } from "@/lib/analytics";
+import { APP_SHARE_URL } from "@/lib/constants";
 import OneSignal from "react-onesignal";
 import {
   AlertDialog,
@@ -40,6 +41,25 @@ export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer
   const [analyticsOptOut, setAnalyticsOptOutState] = useState(() => getAnalyticsOptOut());
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>("default");
   const [dropTarget, setDropTarget] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(APP_SHARE_URL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for browsers that block clipboard API
+      const el = document.createElement("input");
+      el.value = APP_SHARE_URL;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     if ("Notification" in window) {
@@ -279,6 +299,39 @@ export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer
               </div>
             </Card>
           )}
+
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Share2 className="w-4 h-4" />
+              Share the App
+            </h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Know someone who'd enjoy Par for the Course? Send them the link.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={APP_SHARE_URL}
+                readOnly
+                className="flex-1 text-sm"
+                data-testid="input-share-url"
+                onFocus={(e) => e.target.select()}
+              />
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={handleCopyLink}
+                data-testid="button-copy-share-link"
+                aria-label="Copy link"
+              >
+                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+            {copied && (
+              <p className="text-xs text-green-500 mt-2" data-testid="text-copied-confirmation">
+                Link copied to clipboard!
+              </p>
+            )}
+          </Card>
 
           <div className="pt-4 space-y-3">
             {onHome && (

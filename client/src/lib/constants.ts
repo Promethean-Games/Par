@@ -19,4 +19,6 @@ export const LOGO_URL = "/splash-logo.png";
 
 export const APP_VERSION = "v3.1.4.1";
 
+export const APP_SHARE_URL = "https://pftc-classic.replit.app";
+
 
