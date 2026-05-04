@@ -9,11 +9,12 @@ interface DrawDialogProps {
   drawnCard: CourseCard | null;
   onDraw: () => CourseCard | null;
   isFirstDraw?: boolean;
+  playerName?: string;
 }
 
 type Phase = "tap" | "flipping" | "revealed" | "joker-select";
 
-export function DrawDialog({ onConfirm, drawnCard, onDraw, isFirstDraw = false }: DrawDialogProps) {
+export function DrawDialog({ onConfirm, drawnCard, onDraw, isFirstDraw = false, playerName }: DrawDialogProps) {
   const [phase, setPhase] = useState<Phase>(drawnCard ? "revealed" : "tap");
   const [card, setCard] = useState<CourseCard | null>(drawnCard);
   const [jokerPar, setJokerPar] = useState<number | null>(null);
@@ -71,6 +72,12 @@ export function DrawDialog({ onConfirm, drawnCard, onDraw, isFirstDraw = false }
         {phase === "tap" && (
           <>
             <h1 className="text-6xl font-extrabold" data-testid="text-draw">DRAW!</h1>
+            {playerName && (
+              <p className="text-lg font-semibold" data-testid="text-draw-player">
+                Setting up for{" "}
+                <span className="text-primary">{playerName}</span>
+              </p>
+            )}
             <button
               onClick={handleTapDraw}
               className="mx-auto block focus:outline-none"

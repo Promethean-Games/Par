@@ -543,6 +543,7 @@ export function GameScreen({
           drawnCard={getDrawnCard(currentHole)}
           onDraw={handleDraw}
           isFirstDraw={currentHole === 1}
+          playerName={currentPlayer.name}
         />
       )}
 
