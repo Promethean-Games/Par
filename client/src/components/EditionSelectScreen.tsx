@@ -203,6 +203,33 @@ export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: Editi
               </div>
             );
           })}
+
+          {/* Full Unlock bundle — coming soon */}
+          <button
+            className="w-full text-left rounded-md opacity-40 cursor-not-allowed"
+            disabled
+            data-testid="button-edition-full-unlock"
+          >
+            <div
+              className="rounded-md px-5 py-4 flex items-center gap-4"
+              style={{ background: "linear-gradient(135deg, #15803d, #2563eb, #9333ea, #0f766e)" }}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-base leading-tight text-white drop-shadow-sm">
+                    Full Unlock
+                  </p>
+                  <Badge className="text-xs gap-1 bg-black/30 text-white border-white/20 no-default-active-elevate">
+                    <Lock className="w-2.5 h-2.5" />
+                    Coming Soon
+                  </Badge>
+                </div>
+                <p className="text-sm text-white/75 mt-0.5 leading-snug drop-shadow-sm">
+                  Every edition, past and future — one purchase, unlocked forever.
+                </p>
+              </div>
+            </div>
+          </button>
         </div>
 
         {anyLocked && (
