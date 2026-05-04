@@ -15,6 +15,7 @@ interface EditionDef {
   available: boolean;
   requiresPurchase?: boolean;
   contactForDigital?: boolean;
+  accentColor: string;
 }
 
 const EDITIONS: EditionDef[] = [
@@ -23,6 +24,7 @@ const EDITIONS: EditionDef[] = [
     name: "Classic",
     tagline: "The original 18-hole course. Draw cards to set par.",
     available: true,
+    accentColor: "bg-green-600",
   },
   {
     id: "reracked",
@@ -30,6 +32,7 @@ const EDITIONS: EditionDef[] = [
     tagline: "A fresh layout with a new set of courses and higher pars.",
     available: true,
     requiresPurchase: true,
+    accentColor: "bg-blue-600",
   },
   {
     id: "sequential",
@@ -37,6 +40,7 @@ const EDITIONS: EditionDef[] = [
     tagline: "Balls are played in sequential order — like 9-ball. Cards are still drawn randomly.",
     available: true,
     requiresPurchase: true,
+    accentColor: "bg-yellow-500",
   },
   {
     id: "tournament",
@@ -44,24 +48,28 @@ const EDITIONS: EditionDef[] = [
     tagline: "Organized bracket play for leagues and local events.",
     available: false,
     contactForDigital: true,
+    accentColor: "bg-red-600",
   },
   {
     id: "teed-off",
     name: "Tee'd Off",
     tagline: "Wild new challenges from the tee box.",
     available: false,
+    accentColor: "bg-neutral-900 ring-1 ring-neutral-500",
   },
   {
     id: "quantum",
     name: "Quantum",
     tagline: "Superposition rules — every shot has two outcomes.",
     available: false,
+    accentColor: "bg-purple-600",
   },
   {
     id: "orbital",
     name: "Orbital",
     tagline: "18 holes around the cosmos.",
     available: false,
+    accentColor: "bg-teal-500",
   },
 ];
 
@@ -128,6 +136,7 @@ export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: Editi
                   data-testid={`button-edition-${edition.id}`}
                 >
                   <div className="rounded-md px-5 py-4 flex items-center gap-4 border">
+                    <div className={`w-3 h-3 rounded-full shrink-0 ${edition.accentColor}`} aria-hidden="true" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-base leading-tight">{edition.name}</p>
