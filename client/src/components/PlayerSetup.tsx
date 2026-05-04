@@ -167,6 +167,8 @@ export function PlayerSetup({
                 onChange={(e) => onUpdatePlayerName(player.id, e.target.value)}
                 placeholder="Player name"
                 className="flex-1"
+                autoComplete="off"
+                name="player-display-name"
                 data-testid={`input-name-${player.id}`}
               />
 
