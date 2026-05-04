@@ -15,7 +15,7 @@ interface EditionDef {
   available: boolean;
   requiresPurchase?: boolean;
   contactForDigital?: boolean;
-  accentColor: string;
+  gradient: string;
 }
 
 const EDITIONS: EditionDef[] = [
@@ -24,7 +24,7 @@ const EDITIONS: EditionDef[] = [
     name: "Classic",
     tagline: "The original 18-hole course. Draw cards to set par.",
     available: true,
-    accentColor: "bg-green-600",
+    gradient: "bg-gradient-to-br from-green-800 via-green-600 to-green-400",
   },
   {
     id: "reracked",
@@ -32,7 +32,7 @@ const EDITIONS: EditionDef[] = [
     tagline: "A fresh layout with a new set of courses and higher pars.",
     available: true,
     requiresPurchase: true,
-    accentColor: "bg-blue-600",
+    gradient: "bg-gradient-to-br from-blue-900 via-blue-600 to-blue-400",
   },
   {
     id: "sequential",
@@ -40,7 +40,7 @@ const EDITIONS: EditionDef[] = [
     tagline: "Balls are played in sequential order — like 9-ball. Cards are still drawn randomly.",
     available: true,
     requiresPurchase: true,
-    accentColor: "bg-yellow-500",
+    gradient: "bg-gradient-to-br from-yellow-700 via-yellow-500 to-yellow-300",
   },
   {
     id: "tournament",
@@ -48,28 +48,28 @@ const EDITIONS: EditionDef[] = [
     tagline: "Organized bracket play for leagues and local events.",
     available: false,
     contactForDigital: true,
-    accentColor: "bg-red-600",
+    gradient: "bg-gradient-to-br from-red-900 via-red-600 to-red-400",
   },
   {
     id: "teed-off",
     name: "Tee'd Off",
     tagline: "Wild new challenges from the tee box.",
     available: false,
-    accentColor: "bg-neutral-900 ring-1 ring-neutral-500",
+    gradient: "bg-gradient-to-br from-neutral-950 via-neutral-800 to-neutral-600",
   },
   {
     id: "quantum",
     name: "Quantum",
     tagline: "Superposition rules — every shot has two outcomes.",
     available: false,
-    accentColor: "bg-purple-600",
+    gradient: "bg-gradient-to-br from-purple-950 via-purple-700 to-purple-400",
   },
   {
     id: "orbital",
     name: "Orbital",
     tagline: "18 holes around the cosmos.",
     available: false,
-    accentColor: "bg-teal-500",
+    gradient: "bg-gradient-to-br from-teal-900 via-teal-600 to-teal-400",
   },
 ];
 
@@ -121,7 +121,7 @@ export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: Editi
                     "w-full text-left rounded-md",
                     isInteractive
                       ? "hover-elevate active-elevate-2"
-                      : "opacity-50 cursor-not-allowed",
+                      : "opacity-40 cursor-not-allowed",
                   ].join(" ")}
                   onClick={() => {
                     if (isDigitalTournament) {
@@ -135,25 +135,26 @@ export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: Editi
                   disabled={!isInteractive && !isDigitalTournament || isPurchasing}
                   data-testid={`button-edition-${edition.id}`}
                 >
-                  <div className="rounded-md px-5 py-4 flex items-center gap-4 border">
-                    <div className={`w-3 h-3 rounded-full shrink-0 ${edition.accentColor}`} aria-hidden="true" />
+                  <div className={`rounded-md px-5 py-4 flex items-center gap-4 ${edition.gradient}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-bold text-base leading-tight">{edition.name}</p>
+                        <p className="font-bold text-base leading-tight text-white drop-shadow-sm">
+                          {edition.name}
+                        </p>
                         {isComingSoon && !isDigitalTournament && (
-                          <Badge variant="secondary" className="text-xs gap-1">
+                          <Badge className="text-xs gap-1 bg-black/30 text-white border-white/20 no-default-active-elevate">
                             <Lock className="w-2.5 h-2.5" />
                             Coming Soon
                           </Badge>
                         )}
                         {isComingSoon && isDigitalTournament && (
-                          <Badge variant="secondary" className="text-xs gap-1">
+                          <Badge className="text-xs gap-1 bg-black/30 text-white border-white/20 no-default-active-elevate">
                             <Mail className="w-2.5 h-2.5" />
                             Get Info
                           </Badge>
                         )}
                         {isLocked && !isComingSoon && (
-                          <Badge variant="secondary" className="text-xs gap-1">
+                          <Badge className="text-xs gap-1 bg-black/30 text-white border-white/20 no-default-active-elevate">
                             {isPurchasing ? (
                               <Loader2 className="w-2.5 h-2.5 animate-spin" />
                             ) : (
@@ -163,7 +164,7 @@ export function EditionSelectScreen({ cardMode, onSelectEdition, onBack }: Editi
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
+                      <p className="text-sm text-white/75 mt-0.5 leading-snug drop-shadow-sm">
                         {edition.tagline}
                       </p>
                     </div>
