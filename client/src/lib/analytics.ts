@@ -1,52 +1,38 @@
-export const ANALYTICS_OPT_OUT_KEY = "pftc_analytics_opt_out";
-const SESSION_KEY = "pftc_session_id";
+import posthog from "posthog-js";
 
-function getSessionId(): string {
-  try {
-    const existing = sessionStorage.getItem(SESSION_KEY);
-    if (existing) return existing;
-    const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    sessionStorage.setItem(SESSION_KEY, id);
-    return id;
-  } catch {
-    return "anonymous";
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
+
+export function initializeAnalytics() {
+  if (!POSTHOG_KEY) {
+    console.warn("PostHog key not configured");
+    return;
   }
+
+  posthog.init(POSTHOG_KEY, {
+    api_host: "https://us.i.posthog.com",
+    loaded: (ph) => {
+      // PostHog loaded successfully
+      console.log("Analytics initialized");
+    },
+  });
 }
 
-export function initAnalytics(): void {
+export function captureEvent(
+  event: string,
+  properties?: Record<string, any>
+) {
+  if (!POSTHOG_KEY) return;
+  posthog.capture(event, properties || {});
 }
 
-export function trackEvent(
-  name: string,
-  props?: Record<string, unknown>
-): void {
-  try {
-    if (localStorage.getItem(ANALYTICS_OPT_OUT_KEY) === "true") return;
-  } catch {}
-
-  const sessionId = getSessionId();
-
-  fetch("/api/analytics/capture", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ event: name, properties: props, sessionId }),
-  }).catch(() => {});
-}
-
-export function setAnalyticsOptOut(optOut: boolean): void {
-  try {
-    if (optOut) {
-      localStorage.setItem(ANALYTICS_OPT_OUT_KEY, "true");
-    } else {
-      localStorage.removeItem(ANALYTICS_OPT_OUT_KEY);
-    }
-  } catch {}
-}
-
-export function getAnalyticsOptOut(): boolean {
-  try {
-    return localStorage.getItem(ANALYTICS_OPT_OUT_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
+export const ALLOWED_EVENTS = {
+  APP_OPENED: "app_opened",
+  GAME_STARTED: "game_started",
+  GAME_COMPLETED: "game_completed",
+  PAYWALL_ENCOUNTERED: "paywall_encountered",
+  PURCHASE_INITIATED: "purchase_initiated",
+  PURCHASE_COMPLETED: "purchase_completed",
+  TOOL_OPENED: "tool_opened",
+  TUTORIAL_VIEWED: "tutorial_viewed",
+  SETUP_TIME_RECORDED: "setup_time_recorded",
+} as const;

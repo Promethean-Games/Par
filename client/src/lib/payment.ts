@@ -1,5 +1,4 @@
 const UNLOCK_STATUS_KEY = "par_unlock_status";
-const UNLOCK_EDITION_KEY = "par_unlock_edition";
 
 export interface UnlockStatus {
   unlocked: boolean;
