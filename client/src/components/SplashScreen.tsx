@@ -11,7 +11,13 @@ interface SplashScreenProps {
   onNewGame: () => void;
   onLoadGame: () => void;
 }
-
+function setAppPrefIsPremium(value: boolean) {
+  try {
+    const prefs = JSON.parse(localStorage.getItem(APP_PREFS) || "{}");
+    prefs.isPremium = value;
+    localStorage.setItem(APP_PREFS, JSON.stringify(prefs));
+  } catch {}
+}
 export function SplashScreen({ onNewGame, onLoadGame }: SplashScreenProps) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
