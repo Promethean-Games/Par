@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.prometheangames.pftc.classic'
+    namespace 'com.parforthecourse.app'
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.prometheangames.pftc.classic"
+        applicationId "com.parforthecourse.app"
         minSdk 26
         targetSdk 35
         versionCode 2
