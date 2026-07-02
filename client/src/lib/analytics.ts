@@ -2,7 +2,7 @@ import posthog from "posthog-js";
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 
-export function initializeAnalytics() {
+export function initAnalytics() {
   if (!POSTHOG_KEY) {
     console.warn("PostHog key not configured");
     return;
@@ -17,12 +17,26 @@ export function initializeAnalytics() {
   });
 }
 
-export function captureEvent(
+export function trackEvent(
   event: string,
   properties?: Record<string, any>
 ) {
   if (!POSTHOG_KEY) return;
   posthog.capture(event, properties || {});
+}
+
+export function getAnalyticsOptOut(): boolean {
+  try {
+    return localStorage.getItem("par_analytics_optout") === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function setAnalyticsOptOut(optOut: boolean) {
+  try {
+    localStorage.setItem("par_analytics_optout", optOut ? "true" : "false");
+  } catch {}
 }
 
 export const ALLOWED_EVENTS = {
@@ -36,3 +50,5 @@ export const ALLOWED_EVENTS = {
   TUTORIAL_VIEWED: "tutorial_viewed",
   SETUP_TIME_RECORDED: "setup_time_recorded",
 } as const;
+
+export const initAnalytics_DEPRECATED = initAnalytics;
