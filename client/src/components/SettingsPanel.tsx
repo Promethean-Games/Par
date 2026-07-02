@@ -10,6 +10,8 @@ import type { Settings, Player } from "@shared/schema";
 import { getAnalyticsOptOut, setAnalyticsOptOut } from "@/lib/analytics";
 import { APP_SHARE_URL } from "@/lib/constants";
 import OneSignal from "react-onesignal";
+import { useUnlock } from "@/contexts/UnlockContext";
+import { ReviewerCodeDialog } from "./ReviewerCodeDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +38,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer, onDropPlayer, onEndGame, onHome, onLogout, viewOnly = false, isGameOver = false }: SettingsPanelProps) {
+  const { refreshReviewerStatus } = useUnlock();
   const [newPlayerName, setNewPlayerName] = useState("");
   const [insertPosition, setInsertPosition] = useState<string>("end");
   const [analyticsOptOut, setAnalyticsOptOutState] = useState(() => getAnalyticsOptOut());
@@ -92,293 +95,196 @@ export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer
 
   const handleAddPlayer = () => {
     const name = newPlayerName.trim() || `Player ${players.length + 1}`;
-    const position = insertPosition === "end" ? undefined : parseInt(insertPosition);
-    onAddPlayer(name, position);
+    const pos = insertPosition === "end" ? undefined : parseInt(insertPosition, 10);
+    onAddPlayer(name, pos);
     setNewPlayerName("");
-    setInsertPosition("end");
   };
 
   return (
-    <div className="flex flex-col min-h-screen pb-16">
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mb-6">
-          <h2 
-            className="text-2xl font-bold cursor-default select-none" 
-            data-testid="text-settings-title"
-          >
-            Settings
-          </h2>
-        </div>
-
-        <div className="space-y-4">
-          {!isGameOver && (
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <UserPlus className="w-4 h-4" />
-              Add Player
-            </h3>
-            <div className="flex gap-2">
-              <Input
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                placeholder="Player name"
-                className="flex-1"
-                autoComplete="off"
-                name="player-display-name"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddPlayer();
-                }}
-                data-testid="input-settings-new-player"
-              />
-              <Select value={insertPosition} onValueChange={setInsertPosition}>
-                <SelectTrigger className="w-28" data-testid="select-settings-position">
-                  <SelectValue placeholder="Position" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="end">At End</SelectItem>
-                  {players.map((player, index) => (
-                    <SelectItem key={player.id} value={index.toString()}>
-                      Before {index + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleAddPlayer}
-                data-testid="button-settings-add-player"
-              >
-                Add
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Current players: {players.length}
-            </p>
-          </Card>
-          )}
-
-          {!isGameOver && players.length > 1 && (
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <UserMinus className="w-4 h-4" />
-              Drop Player
-            </h3>
-            <div className="flex gap-2">
-              <Select value={dropTarget} onValueChange={setDropTarget}>
-                <SelectTrigger className="flex-1" data-testid="select-settings-drop-player">
-                  <SelectValue placeholder="Select player to drop…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {players.map((player) => (
-                    <SelectItem key={player.id} value={player.id}>
-                      {player.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    disabled={!dropTarget}
-                    data-testid="button-settings-drop-player"
-                  >
-                    Drop
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Drop {players.find((p) => p.id === dropTarget)?.name ?? "player"}?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      They will be removed from the active roster and won't play any further holes. Their scores to date will be kept, but future holes will show no score for them. This may affect their analytics.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel data-testid="button-drop-player-cancel">
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => {
-                        onDropPlayer(dropTarget);
-                        setDropTarget("");
-                      }}
-                      data-testid="button-drop-player-confirm"
-                    >
-                      Drop Player
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Scores to date are preserved — only future holes are affected.
-            </p>
-          </Card>
-          )}
-
-          <Card className="p-4">
-            <h3 className="font-semibold mb-4">Display</h3>
-            
-            <div className="flex items-center justify-between py-3 border-b">
-              <Label htmlFor="theme-toggle" className="flex-1">
-                <div className="font-medium">Dark Theme</div>
-                <div className="text-sm text-muted-foreground">Use dark mode for better outdoor visibility</div>
-              </Label>
-              <Switch
-                id="theme-toggle"
-                checked={settings.theme === "dark"}
-                onCheckedChange={(checked) => onUpdateSettings({ theme: checked ? "dark" : "light" })}
-                data-testid="switch-theme"
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-3 border-b">
-              <Label htmlFor="left-handed-toggle" className="flex-1">
-                <div className="font-medium">Left-Handed Mode</div>
-                <div className="text-sm text-muted-foreground">Optimized layout for left-handed use</div>
-              </Label>
-              <Switch
-                id="left-handed-toggle"
-                checked={settings.leftHandedMode}
-                onCheckedChange={(checked) => onUpdateSettings({ leftHandedMode: checked })}
-                data-testid="switch-left-handed"
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-3 border-b">
-              <Label htmlFor="analytics-toggle" className="flex-1">
-                <div className="font-medium">Help Improve the App</div>
-                <div className="text-sm text-muted-foreground">Send anonymous usage data to help us improve</div>
-              </Label>
-              <Switch
-                id="analytics-toggle"
-                checked={!analyticsOptOut}
-                onCheckedChange={handleAnalyticsToggle}
-                data-testid="switch-analytics"
-              />
-            </div>
-
-            {"Notification" in window && (
-              <div className="flex items-center justify-between py-3">
-                <Label htmlFor="notif-toggle" className="flex-1">
-                  <div className="font-medium">Push Notifications</div>
-                  <div className="text-sm text-muted-foreground">
-                    {notifPermission === "denied"
-                      ? "Blocked by browser — enable in device settings"
-                      : "Get notified about new courses and updates"}
-                  </div>
-                </Label>
-                <Switch
-                  id="notif-toggle"
-                  checked={notifPermission === "granted"}
-                  disabled={notifPermission === "denied"}
-                  onCheckedChange={handleNotifToggle}
-                  data-testid="switch-notifications"
-                />
-              </div>
-            )}
-          </Card>
-
-          {!viewOnly && (
-            <Card className="p-4">
-              <h3 className="font-semibold mb-4">Game</h3>
-              
-              <div className="flex items-center justify-between py-3">
-                <Label htmlFor="autosave-toggle" className="flex-1">
-                  <div className="font-medium">Auto-Save</div>
-                  <div className="text-sm text-muted-foreground">Automatically save game progress</div>
-                </Label>
-                <Switch
-                  id="autosave-toggle"
-                  checked={settings.autoSave}
-                  onCheckedChange={(checked) => onUpdateSettings({ autoSave: checked })}
-                  data-testid="switch-autosave"
-                />
-              </div>
-            </Card>
-          )}
-
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <Share2 className="w-4 h-4" />
-              Share the App
-            </h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Know someone who'd enjoy Par for the Course? Send them the link.
-            </p>
-            <div className="flex gap-2">
-              <Input
-                value={APP_SHARE_URL}
-                readOnly
-                className="flex-1 text-sm"
-                data-testid="input-share-url"
-                onFocus={(e) => e.target.select()}
-              />
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={handleCopyLink}
-                data-testid="button-copy-share-link"
-                aria-label="Copy link"
-              >
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-            {copied && (
-              <p className="text-xs text-green-500 mt-2" data-testid="text-copied-confirmation">
-                Link copied to clipboard!
-              </p>
-            )}
-          </Card>
-
-          <div className="pt-4 space-y-3">
-            {onHome && (
-              <Button
-                variant="outline"
-                className="w-full h-12"
-                onClick={onHome}
-                data-testid="button-home"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Home
-              </Button>
-            )}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  data-testid="button-end-game"
-                >
-                  End Game
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>End the game?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will finish the current round and take you to the summary screen. This cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel data-testid="button-end-game-cancel">
-                    Keep Playing
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={onEndGame}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    data-testid="button-end-game-confirm"
-                  >
-                    End Game
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
+    <div className="space-y-4">
+      {/* Reviewer Code Dialog - For Google Play reviewers */}
+      <div>
+        <ReviewerCodeDialog onUnlock={refreshReviewerStatus} />
       </div>
+
+      {/* Player Management */}
+      {!viewOnly && (
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3">Add Player</h3>
+          <div className="space-y-2">
+            <Input
+              placeholder="Player name"
+              value={newPlayerName}
+              onChange={(e) => setNewPlayerName(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleAddPlayer()}
+            />
+            <div className="flex gap-2">
+              <Select value={insertPosition} onValueChange={setInsertPosition}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="end">End of list</SelectItem>
+                  {players.map((p, i) => (
+                    <SelectItem key={p.id} value={i.toString()}>
+                      Before {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleAddPlayer} disabled={!newPlayerName.trim()}>
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Drop Player */}
+      {!viewOnly && players.length > 0 && (
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3">Remove Player</h3>
+          <div className="flex gap-2">
+            <Select value={dropTarget} onValueChange={setDropTarget}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select player" />
+              </SelectTrigger>
+              <SelectContent>
+                {players.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                if (dropTarget) onDropPlayer(dropTarget);
+                setDropTarget("");
+              }}
+              disabled={!dropTarget}
+            >
+              <UserMinus className="w-4 h-4" />
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Analytics */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-base font-semibold">Analytics</Label>
+            <p className="text-xs text-muted-foreground mt-1">Help us improve by sharing anonymous usage data</p>
+          </div>
+          <Switch
+            checked={!analyticsOptOut}
+            onCheckedChange={handleAnalyticsToggle}
+          />
+        </div>
+      </Card>
+
+      {/* Notifications */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-base font-semibold">Notifications</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              {notifPermission === "denied"
+                ? "Notifications are blocked"
+                : notifPermission === "granted"
+                  ? "Enabled"
+                  : "Ask when needed"}
+            </p>
+          </div>
+          <Switch
+            checked={notifPermission === "granted"}
+            onCheckedChange={handleNotifToggle}
+          />
+        </div>
+      </Card>
+
+      {/* Share */}
+      <Card className="p-4">
+        <h3 className="font-semibold mb-3">Share</h3>
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2"
+          onClick={handleCopyLink}
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4" />
+              Link copied!
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              Copy app link
+            </>
+          )}
+        </Button>
+      </Card>
+
+      {/* Game Actions */}
+      {!viewOnly && (
+        <>
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={onHome}
+          >
+            <Home className="w-4 h-4" />
+            Back to Home
+          </Button>
+        </>
+      )}
+
+      {!viewOnly && !isGameOver && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="w-full">
+              End Game
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>End Game?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will move to the summary view. You can still edit scores afterwards.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onEndGame}>End Game</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {viewOnly && onLogout && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="w-full">
+              Start New Game
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Start New Game?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will clear the current game. Your game is already saved.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onLogout}>Start New Game</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

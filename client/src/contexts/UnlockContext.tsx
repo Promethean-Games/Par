@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { isRunningInTwa, initiatePlayBillingCheckout, checkPendingPurchases } from "@/lib/play-billing";
+import { isReviewerUnlocked } from "@/lib/payment";
 
 // Editions that can be individually purchased
 const PURCHASABLE_EDITIONS = ["reracked", "sequential"] as const;
@@ -21,8 +22,10 @@ function loadUnlocked(): Set<string> {
 
 interface UnlockContextValue {
   isEditionUnlocked: (edition: string) => boolean;
+  isReviewerMode: boolean;
   purchasingEdition: string | null;
   triggerPurchase: (edition: string) => Promise<void>;
+  refreshReviewerStatus: () => void;
 }
 
 const UnlockContext = createContext<UnlockContextValue | null>(null);
@@ -35,11 +38,16 @@ export function useUnlock() {
 
 export function UnlockProvider({ children }: { children: ReactNode }) {
   const [unlocked, setUnlocked] = useState<Set<string>>(loadUnlocked);
+  const [isReviewerMode, setIsReviewerMode] = useState(() => isReviewerUnlocked());
   const [purchasingEdition, setPurchasingEdition] = useState<string | null>(null);
 
   const markEditionUnlocked = useCallback((edition: string) => {
     try { localStorage.setItem(storageKey(edition), "true"); } catch {}
     setUnlocked((prev) => new Set([...prev, edition]));
+  }, []);
+
+  const refreshReviewerStatus = useCallback(() => {
+    setIsReviewerMode(isReviewerUnlocked());
   }, []);
 
   // Handle Stripe redirect: ?unlock=success&edition=reracked&session_id=cs_...
@@ -52,11 +60,9 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
 
     window.history.replaceState({}, "", window.location.pathname);
 
-    fetch(`/api/check-unlock-status?session_id=${encodeURIComponent(sessionId)}`)
-      .then((r) => r.json())
-      .then((data) => { if (data.unlocked) markEditionUnlocked(edition); })
-      .catch(() => {});
-  }, []);
+    // For standalone app, just mark as unlocked (no server to verify)
+    markEditionUnlocked(edition);
+  }, [markEditionUnlocked]);
 
   // Check all pending Play Billing purchases on TWA startup
   useEffect(() => {
@@ -64,56 +70,49 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
     checkPendingPurchases()
       .then((purchases) => {
         for (const purchase of purchases) {
-          fetch("/api/verify-play-purchase", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(purchase),
-          })
-            .then((r) => r.json())
-            .then((data) => { if (data.unlocked && data.edition) markEditionUnlocked(data.edition); })
-            .catch(() => {});
+          // In standalone mode, verify locally (server calls removed)
+          // For now, just mark as unlocked if purchase exists
+          if (purchase.edition) {
+            markEditionUnlocked(purchase.edition);
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [markEditionUnlocked]);
 
   const isEditionUnlocked = useCallback(
-    (edition: string) => unlocked.has(edition),
-    [unlocked]
+    (edition: string) => {
+      // Reviewer mode unlocks all editions
+      if (isReviewerMode) return true;
+      return unlocked.has(edition);
+    },
+    [unlocked, isReviewerMode]
   );
 
   const triggerPurchase = useCallback(async (edition: string) => {
-    if (unlocked.has(edition) || purchasingEdition) return;
+    if (unlocked.has(edition) || purchasingEdition || isReviewerMode) return;
     setPurchasingEdition(edition);
     try {
       if (isRunningInTwa()) {
         const purchase = await initiatePlayBillingCheckout(edition);
         if (!purchase) return;
-        const res = await fetch("/api/verify-play-purchase", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(purchase),
-        });
-        const data = await res.json();
-        if (data.unlocked) markEditionUnlocked(edition);
+        // For standalone, just mark as unlocked
+        if (purchase.edition) {
+          markEditionUnlocked(purchase.edition);
+        }
       } else {
-        const res = await fetch("/api/create-checkout-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ edition }),
-        });
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
+        // For web, redirect to Stripe (would need to be set up separately)
+        console.warn("Purchase not implemented in standalone mode");
       }
     } catch (err) {
       console.error("[UnlockContext] purchase error:", err);
     } finally {
       setPurchasingEdition(null);
     }
-  }, [unlocked, purchasingEdition, markEditionUnlocked]);
+  }, [unlocked, purchasingEdition, isReviewerMode, markEditionUnlocked]);
 
   return (
-    <UnlockContext.Provider value={{ isEditionUnlocked, purchasingEdition, triggerPurchase }}>
+    <UnlockContext.Provider value={{ isEditionUnlocked, isReviewerMode, purchasingEdition, triggerPurchase, refreshReviewerStatus }}>
       {children}
     </UnlockContext.Provider>
   );
